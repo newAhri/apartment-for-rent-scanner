@@ -23,7 +23,7 @@ public class ScannerUser {
     int userPeriod = 5;
 
     Timer timer;
-    //mark to avoid timer run error and stop if settings has been changed
+    //marker to avoid timer run error and stop if settings has been changed
     boolean timerOn;
 
     JSONArray checkedAdverts = new JSONArray();
@@ -121,7 +121,7 @@ public class ScannerUser {
     }
 
     /**
-     * Optional method to create an image of static map created in Google Maps API with apartment address marker on it
+     * Optional method to create an image of static map created in Google Maps Static API with apartment address marker on it to send it to user in message
      * @param address of apartment in advert
      * @return URL of static map image
      */
@@ -131,7 +131,7 @@ public class ScannerUser {
         String key = "key=YOUR-GOOGLE-API-KEY";
         String size = "size=512x512";
         String mapID = "map_id=MAP-STYLE-ID";
-        String visible = "visible=SPOT-TO-BE-VISIBLE-ON-MAP";
+        String visible = "visible=56.949553,24.105006";
         String apartmentMarker = "markers=color:red%7Clabel:X%7C" + address;
         String mapImageURL = "https://maps.googleapis.com/maps/api/staticmap?" + size + S + key + S + mapID + S + visible + S + apartmentMarker;
 

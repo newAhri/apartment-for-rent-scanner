@@ -241,21 +241,25 @@ public class ScannerUser {
             for (Element line : lines) {
 
                 String rawPrice = line.select("td:nth-child(10)").text();
-                boolean correctPrice;
+                boolean correctPrice = false;
 
                 switch (currentMode) {
                     case "RENT":
-                        if (!rawPrice.contains("€")) continue;
+                        if (!rawPrice.contains("€/mēn.")) continue;
                         rawPrice = rawPrice.substring(0,3);
                         correctPrice = Pattern.compile("^\\d{3}$").matcher(rawPrice).matches();
                         break;
                     case "SELL":
                         if (!rawPrice.contains("€")) continue;
-                        rawPrice = rawPrice.substring(0,2) + rawPrice.substring(3,6);
-                        correctPrice = Pattern.compile("^\\d{5}$").matcher(rawPrice).matches();
+                        int indexOfComa = rawPrice.indexOf(",");
+                        if (indexOfComa == 2){
+                            rawPrice = rawPrice.substring(0,2) + rawPrice.substring(3,6);
+                            correctPrice = Pattern.compile("^\\d{5}$").matcher(rawPrice).matches();
+                        } else if (indexOfComa == 3) {
+                            rawPrice = rawPrice.substring(0,3) + rawPrice.substring(4,7);
+                            correctPrice = Pattern.compile("^\\d{6}$").matcher(rawPrice).matches();
+                        }
                         break;
-                    default:
-                        throw new IllegalStateException("Unexpected value: " + currentMode);
                 }
 
                 if (!correctPrice) continue;

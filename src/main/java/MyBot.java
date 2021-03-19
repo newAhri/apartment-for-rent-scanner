@@ -16,6 +16,7 @@ public class MyBot extends TelegramLongPollingBot {
 
     /**
      * Global message processor, passes update to specific command processor
+     *
      * @param update object of incoming message with information in it
      */
 
@@ -39,7 +40,7 @@ public class MyBot extends TelegramLongPollingBot {
     }
 
     //replies to user
-    public void sendScannerIsStopped (Long chat_id){
+    public void sendScannerIsStopped(Long chat_id) {
         try {
             SendMessage sendMessage = new SendMessage().setChatId(chat_id).setText("Сканнер остановлен");
             execute(sendMessage);
@@ -48,7 +49,7 @@ public class MyBot extends TelegramLongPollingBot {
         }
     }
 
-    public void sendNoUser (Long chat_id){
+    public void sendNoUser(Long chat_id) {
         try {
             SendMessage sendMessage = new SendMessage().setChatId(chat_id).setText("Мы с тобой не знакомы. Напиши /start для началы работы");
             execute(sendMessage);
@@ -57,7 +58,7 @@ public class MyBot extends TelegramLongPollingBot {
         }
     }
 
-    public void sendNoSuccess (Long chat_id){
+    public void sendNoSuccess(Long chat_id) {
         try {
             SendMessage sendMessage = new SendMessage().setChatId(chat_id).setText("Неудача. Попробуй еще раз");
             execute(sendMessage);
@@ -66,7 +67,7 @@ public class MyBot extends TelegramLongPollingBot {
         }
     }
 
-    public void sendSettingsChanged (Long chat_id){
+    public void sendSettingsChanged(Long chat_id) {
         try {
             SendMessage sendMessage = new SendMessage().setChatId(chat_id).setText("Настройки изменены");
             execute(sendMessage);
@@ -76,7 +77,7 @@ public class MyBot extends TelegramLongPollingBot {
     }
 
     //command processors
-    public void start (Update update) {
+    public void start(Update update) {
         if (!users_ID.containsKey(chat_id)) users_ID.put(chat_id, new ScannerUser(chat_id));
         SendMessage sendMessage = new SendMessage().setChatId(update.getMessage().getChatId());
         try {
@@ -88,9 +89,9 @@ public class MyBot extends TelegramLongPollingBot {
         }
     }
 
-    public void stopScanner (Update update){
+    public void stopScanner(Update update) {
         if (!users_ID.containsKey(chat_id)) sendNoUser(chat_id);
-        else{
+        else {
             boolean timerOn = users_ID.get(chat_id).timerStop();
             if (timerOn) sendScannerIsStopped(chat_id);
             else {
@@ -105,9 +106,9 @@ public class MyBot extends TelegramLongPollingBot {
         }
     }
 
-    public void runScanner(Update update){
+    public void runScanner(Update update) {
         if (!users_ID.containsKey(chat_id)) sendNoUser(chat_id);
-        else{
+        else {
             boolean timerWasOff = users_ID.get(chat_id).timerStart();
             if (timerWasOff) {
                 try {
@@ -127,16 +128,16 @@ public class MyBot extends TelegramLongPollingBot {
         }
     }
 
-    public void setPrice (Update update){
+    public void setPrice(Update update) {
         if (!users_ID.containsKey(chat_id)) sendNoUser(chat_id);
-        else{
+        else {
             String text = update.getMessage().getText();
             boolean correctText = Pattern.compile("^/setPrice \\d+-\\d+$").matcher(text).matches();
             if (!correctText) sendNoSuccess(chat_id);
             else {
                 String priceRange = text.substring(text.indexOf(" ") + 1);
-                String [] prices = priceRange.split("-");
-                int [] intP = new int[2];
+                String[] prices = priceRange.split("-");
+                int[] intP = new int[2];
                 intP[0] = Integer.parseInt(prices[0]);
                 intP[1] = Integer.parseInt(prices[1]);
                 if (intP[0] > intP[1]) sendNoSuccess(chat_id);
@@ -153,13 +154,13 @@ public class MyBot extends TelegramLongPollingBot {
         }
     }
 
-    public void setArea (Update update){
+    public void setArea(Update update) {
         if (!users_ID.containsKey(chat_id)) sendNoUser(chat_id);
-        else{
+        else {
             String text = update.getMessage().getText();
             boolean correctText = Pattern.compile("^/setArea \\d+$").matcher(text).matches();
             if (!correctText) sendNoSuccess(chat_id);
-            else{
+            else {
                 String area = text.substring(text.indexOf(" ") + 1);
                 boolean timerWasOn = users_ID.get(chat_id).setUserArea(Integer.parseInt(area));
 
@@ -169,7 +170,7 @@ public class MyBot extends TelegramLongPollingBot {
         }
     }
 
-    public void setPeriod (Update update){
+    public void setPeriod(Update update) {
         if (!users_ID.containsKey(chat_id)) sendNoUser(chat_id);
         else {
             String text = update.getMessage().getText();
@@ -185,7 +186,7 @@ public class MyBot extends TelegramLongPollingBot {
         }
     }
 
-    public void getSettings (Update update){
+    public void getSettings(Update update) {
         if (!users_ID.containsKey(chat_id)) sendNoUser(chat_id);
         else {
             int price1 = users_ID.get(chat_id).getUserPrice1();
@@ -219,7 +220,6 @@ public class MyBot extends TelegramLongPollingBot {
         if (!users_ID.containsKey(chat_id)) sendNoUser(chat_id);
         else {
             try {
-                String text = update.getMessage().getText();
                 boolean timerWasOn;
                 if (users_ID.get(chat_id).getCurrentMode().equals(users_ID.get(chat_id).MODES[0])) {
                     timerWasOn = users_ID.get(chat_id).setCurrentMode(users_ID.get(chat_id).MODES[1]);

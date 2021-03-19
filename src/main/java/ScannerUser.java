@@ -16,6 +16,8 @@ import java.util.regex.Pattern;
 public class ScannerUser {
 
     long chat_ID;
+    final String[] MODES = {"RENT", "SELL"};
+    String currentMode = MODES[0];
 
     //settings by default
     int userPrice1 = 150; int userPrice2 = 250;
@@ -107,6 +109,34 @@ public class ScannerUser {
         return false;
     }
 
+    public String getCurrentMode() {
+        return currentMode;
+    }
+
+    public boolean setCurrentMode(String currentMode) {
+        this.currentMode = currentMode;
+        adjustSettings(currentMode);
+        if (timerOn) {
+            timer.cancel();
+            timerOn = false;
+            return true;
+        }
+        return false;
+    }
+
+    private void adjustSettings(String mode) {
+        switch (mode) {
+            case "RENT":
+                userPrice1 = 150; userPrice2 = 250;
+                break;
+            case "SELL":
+                userPrice1 = 40000; userPrice2 = 60000;
+                break;
+            default:
+                break;
+        }
+    }
+
     public void runner(){
 
         JSONArray newLinkArray = findLinks();
@@ -121,7 +151,7 @@ public class ScannerUser {
     }
 
     /**
-     * Optional method to create an image of static map created in Google Maps Static API with apartment address marker on it to send it to user in message
+     * Optional method to create an image of static map created in Google Maps API with apartment address marker on it
      * @param address of apartment in advert
      * @return URL of static map image
      */
@@ -140,7 +170,13 @@ public class ScannerUser {
 
     public void sendAdvertsToUser (JSONArray advertsList) {
 
-        String textSample = "%4$s-комнатная квартира за %2$s евро в месяц\n%3$s кв. м.\n\n%1$s";
+        String textSample;
+        if (currentMode.equals("RENT")) {
+            textSample = "%4$s-комнатная квартира за %2$s евро в месяц, %5$s этаж.\n%3$s кв. м.\n\n%1$s";
+        } else {
+            textSample = "%4$s-комнатная квартира за %2$s евро, %5$s этаж.\n%3$s кв. м.\n\n%1$s";
+        }
+
         MyBot bot = new MyBot();
 
         for (int i = 0; i < advertsList.size(); i++) {
@@ -150,7 +186,7 @@ public class ScannerUser {
 
             String imageURL = getImageURL(address);
 
-            String message = String.format(textSample, (String) obj.get("Link"), (String) obj.get("Price"), (String) obj.get("Area"), (String) obj.get("Rooms"));
+            String message = String.format(textSample, (String) obj.get("Link"), (String) obj.get("Price"), (String) obj.get("Area"), (String) obj.get("Rooms"), (String) obj.get("Floor"));
 
             SendPhoto sendPhoto = new SendPhoto().setChatId(chat_ID).setPhoto(imageURL).setCaption(message);
 
@@ -187,26 +223,46 @@ public class ScannerUser {
         JSONArray jsonArray = new JSONArray();
 
         try {
-            String url = "https://www.ss.com/lv/real-estate/flats/riga/today/";
+            String url;
+            switch (currentMode) {
+                case "RENT":
+                    url = "https://www.ss.com/lv/real-estate/flats/riga/today/hand_over/";
+                    break;
+                case "SELL":
+                    url = "https://www.ss.com/lv/real-estate/flats/riga/today/sell";
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + currentMode);
+            }
 
-            Document page = (Document) Jsoup.parse(new URL(url), 3000);
+            Document page = (Document) Jsoup.parse(new URL(url), 5000);
             Elements lines = page.select("tr[id~=^tr_\\d{8}$]");
 
             for (Element line : lines) {
 
                 String rawPrice = line.select("td:nth-child(10)").text();
+                boolean correctPrice;
 
-                if (!rawPrice.contains("€/mēn.")) continue;
-
-                rawPrice = rawPrice.substring(0,3);
-
-                boolean correctPrice = Pattern.compile("^\\d{3}$").matcher(rawPrice).matches();
+                switch (currentMode) {
+                    case "RENT":
+                        if (!rawPrice.contains("€")) continue;
+                        rawPrice = rawPrice.substring(0,3);
+                        correctPrice = Pattern.compile("^\\d{3}$").matcher(rawPrice).matches();
+                        break;
+                    case "SELL":
+                        if (!rawPrice.contains("€")) continue;
+                        rawPrice = rawPrice.substring(0,2) + rawPrice.substring(3,6);
+                        correctPrice = Pattern.compile("^\\d{5}$").matcher(rawPrice).matches();
+                        break;
+                    default:
+                        throw new IllegalStateException("Unexpected value: " + currentMode);
+                }
 
                 if (!correctPrice) continue;
 
-                String rawArea = line.select("td:nth-child(6)").text();
                 String rooms = line.select("td:nth-child(5)").text();
-
+                String rawArea = line.select("td:nth-child(6)").text();
+                String floor = line.select("td:nth-child(7)").text();
 
                 int intPrice = Integer.parseInt(rawPrice);
                 int intArea = Integer.parseInt(rawArea);
@@ -222,6 +278,7 @@ public class ScannerUser {
                     data.put("Price", rawPrice);
                     data.put("Area", rawArea);
                     data.put("Rooms", rooms);
+                    data.put("Floor", floor);
                     data.put("Address", address);
                     advert.put("Advert", data);
                     jsonArray.add(advert);

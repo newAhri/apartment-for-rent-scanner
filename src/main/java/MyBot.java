@@ -33,6 +33,7 @@ public class MyBot extends TelegramLongPollingBot {
         if (text.startsWith("/setPeriod")) setPeriod(update);
         if (text.startsWith("/settings")) getSettings(update);
         if (text.startsWith("/stop")) stopScanner(update);
+        if (text.startsWith("/switchMode")) switchBotMode(update);
 
 
     }
@@ -80,7 +81,7 @@ public class MyBot extends TelegramLongPollingBot {
         SendMessage sendMessage = new SendMessage().setChatId(update.getMessage().getChatId());
         try {
             sendMessage.setText("Ты можешь задать свои параметры для сканера или запустить с установленными по умолчанию\n\nСписок комманд:\n\n/run - запустить сканер\n/stop - остановить сканер\n/settings - посмотреть настройки\n" +
-                    "|/setPrice 999-999| - установить спектр цен (€/мес.)\n|/setArea 999| - установить площадь от (кв.м.)\n|/setPeriod 999| - установить время обновления (мин.)");
+                    "|/setPrice 999-999| - установить спектр цен (€/мес. или € при режиме \"Продажа\")\n|/setArea 999| - установить площадь от (кв.м.)\n|/setPeriod 999| - установить время обновления (мин.).\n|/switchMode| - поменять режим бота.");
             execute(sendMessage);
         } catch (TelegramApiException e) {
             e.printStackTrace();
@@ -191,17 +192,53 @@ public class MyBot extends TelegramLongPollingBot {
             int price2 = users_ID.get(chat_id).getUserPrice2();
             int area = users_ID.get(chat_id).getUserArea();
             int period = users_ID.get(chat_id).getUserPeriod();
+            String mode = users_ID.get(chat_id).getCurrentMode();
+
+            String moneyUnit;
+            if (mode.equals("RENT")) {
+                mode = "Аренда";
+                moneyUnit = " €/мес.\n";
+            } else {
+                mode = "Продажа";
+                moneyUnit = " €.\n";
+            }
 
             try {
-                SendMessage sendMessage = new SendMessage().setChatId(update.getMessage().getChatId()).setText("Цена: " + price1 + "-" + price2 + " €/мес.\n" +
+                SendMessage sendMessage = new SendMessage().setChatId(update.getMessage().getChatId()).setText("Цена: " + price1 + "-" + price2 + moneyUnit +
                         "Площадь от: " + area + " кв.м.\n" +
-                        "Время обновления: " + period + " мин.");
+                        "Время обновления: " + period + " мин.\n" +
+                        "Режим: " + mode);
                 execute(sendMessage);
             } catch (TelegramApiException e) {
                 e.printStackTrace();
             }
         }
     }
+
+    private void switchBotMode(Update update) {
+        if (!users_ID.containsKey(chat_id)) sendNoUser(chat_id);
+        else {
+            try {
+                String text = update.getMessage().getText();
+                boolean timerWasOn;
+                if (users_ID.get(chat_id).getCurrentMode().equals(users_ID.get(chat_id).MODES[0])) {
+                    timerWasOn = users_ID.get(chat_id).setCurrentMode(users_ID.get(chat_id).MODES[1]);
+                    SendMessage sendMessage = new SendMessage().setChatId(update.getMessage().getChatId()).setText("Выбран режим \"Продажа\"");
+                    execute(sendMessage);
+                } else {
+                    timerWasOn = users_ID.get(chat_id).setCurrentMode(users_ID.get(chat_id).MODES[0]);
+                    SendMessage sendMessage = new SendMessage().setChatId(update.getMessage().getChatId()).setText("Выбран режим \"Аренда\"");
+                    execute(sendMessage);
+                }
+
+                if (timerWasOn) sendScannerIsStopped(chat_id);
+                sendSettingsChanged(chat_id);
+            } catch (TelegramApiException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     /**
      * @return token given by BotFather
      */
